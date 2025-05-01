@@ -28,7 +28,7 @@ const connectDB = async () => {
 connectDB();
 
 const app = express();
-const port = 4000;
+const Port = 4000;
 
 // Body parser middleware to parse POST request body
 app.use(express.json());
@@ -194,8 +194,8 @@ app.get('/projects', protect , async (req, res)=>{
 
 
 // Start the server
-app.listen(port, () => {
-  console.log(`Example app listening on port ${port}`);
+app.listen(Port, () => {
+  console.log(`Example app listening on Port ${Port}`);
 });
 
 
