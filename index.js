@@ -4,6 +4,7 @@ import dotenv from 'dotenv';
 import session from 'express-session';
 import User from './Schema/userSchema.js';
 import bcrypt from 'bcryptjs';
+import cors from 'cors';
 import generateToken from './utils/generateToken.js';
 import Project from './Schema/projectSchema.js';
 import protect from './middleware/authMiddleware.js';
@@ -29,6 +30,19 @@ connectDB();
 
 const app = express();
 const PORT = process.env.PORT;
+
+const allowedOrigins = ['http://localhost:5173', 'https://task-tracker-application-backend.vercel.app'];
+
+app.use(cors({
+  origin: function (origin, callback) {
+    if (!origin || allowedOrigins.includes(origin)) {
+      callback(null, true);
+    } else {
+      callback(new Error('Not allowed by CORS'));
+    }
+  },
+  credentials: true,
+}));
 
 // Body parser middleware to parse POST request body
 app.use(express.json());
