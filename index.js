@@ -138,7 +138,7 @@ app.post('/login', async (req, res) => {
   }
 });
 
-// for single user project (perticular to that user it can create the project)
+// for creating single user project (perticular to that user it can create the project)
 app.post('/project', protect , async(req, res)=>{
   const { title, description} = req.body;
   const userId = req.user._id;
@@ -158,38 +158,74 @@ app.post('/project', protect , async(req, res)=>{
   }
 })
 
-// for single user project (perticular to that user it will update project)
-app.patch('/project/:id', async (req, res) => {
+// for update single user project (perticular to that user it will update project)
+app.patch('/project/:id', protect , async (req, res) => {
   const { id } = req.params;
   const { title, description } = req.body;
   const userId = req.user._id;
 
   try {
-    const updatedFields = {};
-  if (title) updatedFields.title = title;
-  if (description) updatedFields.description = description;
 
-  const updatedProject = await Project.findByIdAndUpdate(
-    id,
-    updatedFields,
-    { new: true }
-  );
-
-  if (!updatedProject) {
+  const project = await Project.findById(id);
+  if (!project){
     return res.status(404).json({ message: "Project not found" });
   }
+  
+  // check if the project belong to the user
+  if(project.owner.toString() !== userId.toString() ){
+    return res.status(403).json({ message: "Not authorized to update this project" });
+  }
 
-  await Activity.create({
-    user: userId,
-    action: `Updated project: ${title}`,
-  });
+   // Don't allow update if project is completed
+   if (project.status === 'completed') {
+    return res.status(403).json({ message: "Cannot edit a completed project" });
+  }
 
-  res.status(200).json(updatedProject);
+   // Update fields
+   if (title) project.title = title;
+   if (description) project.description = description;
+
+   const updatedProject = await project.save();
+
+   // Log activity
+   await Activity.create({
+     user: userId,
+     action: `Updated project: ${title || project.title}`,
+   });
+
+   res.status(200).json(updatedProject);
+
+  // res.status(200).json(updatedProject);
   } catch (error) {
     res.status(500).json({ message: error.message });
   }
 });
 
+// to get the single project
+app.get('/project/:id', protect, async (req, res) => {
+  const { id } = req.params;
+  const userId = req.user._id;
+
+  try {
+    const project = await Project.findById(id);
+
+    if (!project) {
+      return res.status(404).json({ message: "Project not found" });
+    }
+
+    // Optional: check if the project belongs to the user
+    if (project.owner.toString() !== userId.toString()) {
+      return res.status(403).json({ message: "Not authorized to view this project" });
+    }
+
+    res.status(200).json(project);
+  } catch (error) {
+    res.status(500).json({ message: error.message });
+  }
+});
+
+
+// delete the single project
 app.delete('/project/:id', async (req, res)=>{
   const {id} = req.body;
   const userId = req.user._id;
@@ -209,6 +245,41 @@ app.delete('/project/:id', async (req, res)=>{
     res.status(500).json({message: error.message});
   }
 })
+
+// make the project as completed
+app.put('/project/:id/complete', protect, async (req, res) => {
+  const { id } = req.params;
+  const userId = req.user._id;
+
+  try {
+    const project = await Project.findById(id);
+
+    if (!project) {
+      return res.status(404).json({ message: "Project not found" });
+    }
+
+    if (project.owner.toString() !== userId.toString()) {
+      return res.status(403).json({ message: "Not authorized to complete this project" });
+    }
+
+    if (project.status === 'completed') {
+      return res.status(200).json({ message: "Project is already completed" });
+    }
+
+    project.status = 'completed';
+    await project.save();
+
+    await Activity.create({
+      user: userId,
+      action: `Marked project as completed: ${project.title}`,
+    });
+
+    res.status(200).json({ message: "Project marked as completed", project });
+  } catch (error) {
+    res.status(500).json({ message: error.message });
+  }
+});
+
 
 // for single user project (perticular to that user it will give all the projects)
 app.get('/projects', protect , async (req, res)=>{
