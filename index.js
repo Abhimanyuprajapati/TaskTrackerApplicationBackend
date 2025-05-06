@@ -8,6 +8,7 @@ import cors from 'cors';
 import generateToken from './utils/generateToken.js';
 import Project from './Schema/projectSchema.js';
 import protect from './middleware/authMiddleware.js';
+import Activity from './Schema/activitySchema.js';
 
 // Load environment variables from .env
 dotenv.config();
@@ -145,6 +146,12 @@ app.post('/project', protect , async(req, res)=>{
   try {
     const project = new Project({title, description, owner: userId});
     await project.save();
+
+    await Activity.create({
+      user: userId,
+      action: `Created project: ${title}`,
+    });
+
     res.status(201).json(project);
   }catch (error) {
     res.status(500).json({ message: error.message });
@@ -155,6 +162,7 @@ app.post('/project', protect , async(req, res)=>{
 app.patch('/project/:id', async (req, res) => {
   const { id } = req.params;
   const { title, description } = req.body;
+  const userId = req.user._id;
 
   try {
     const updatedFields = {};
@@ -171,6 +179,11 @@ app.patch('/project/:id', async (req, res) => {
     return res.status(404).json({ message: "Project not found" });
   }
 
+  await Activity.create({
+    user: userId,
+    action: `Updated project: ${title}`,
+  });
+
   res.status(200).json(updatedProject);
   } catch (error) {
     res.status(500).json({ message: error.message });
@@ -179,12 +192,18 @@ app.patch('/project/:id', async (req, res) => {
 
 app.delete('/project/:id', async (req, res)=>{
   const {id} = req.body;
-
+  const userId = req.user._id;
   try {
     const deletedProject = await Project.findByIdAndDelete(id);
     if(!deletedProject){
       return res.status(404).json({message: "project not found"});
     }
+
+    await Activity.create({
+      user: userId,
+      action: `Deleted project: ${title}`,
+    });
+
     res.status(200).json({message: "Project deleted successfully"});
   }catch (error){
     res.status(500).json({message: error.message});
@@ -204,6 +223,58 @@ app.get('/projects', protect , async (req, res)=>{
   }
 })
 
+// get the count of all the projects of a perticular user
+app.get('/projects/countrevenuepending', protect , async (req, res)=>{
+  const userId = req.user._id;
+
+  console.log("User ID:", userId); // Log the user ID for debugging
+  try {
+    const projectCount = await Project.countDocuments({ owner: userId });
+    const revenue = projectCount * 50;
+    res.status(200).json({
+      projectCount,
+      revenue : `$${revenue}`,
+    });
+  } catch (error) {
+    res.status(500).json({ message: error.message });
+  }
+})
+
+
+// global notification 
+app.get('/notification', protect , async (req, res)=>{
+  try{
+    const notification = [{
+      message: "New project is available for Client A"
+    },
+    {
+      message: "New project is available for Client B"
+    },
+    {
+      message: "New project is available for Client C"
+    },
+  ]
+  res.status(200).json(notification);
+  } catch (error) {
+    res.status(500).json({ message: error.message });
+  }
+})
+
+
+// get  activity for recent user action 
+app.get('/activity/recent', protect , async(req, res)=>{
+  try {
+    const userId = req.user._id;
+
+    const activities = await Activity.find({ user: userId })
+      .sort({ timestamp: -1 }) // recent first
+      .limit(5); // limit to latest 5
+
+    res.status(200).json(activities);
+  } catch (error) {
+    res.status(500).json({ message: error.message });
+  }
+})
 
 
 
