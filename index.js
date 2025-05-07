@@ -90,7 +90,7 @@ app.post("/register", async (req, res) => {
 
     const savedUser = await newUser.save();
     const token = generateToken(savedUser._id);
-
+    
     // Send email
     await sendMail(
       newUser.email,
