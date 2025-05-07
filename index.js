@@ -9,6 +9,7 @@ import generateToken from './utils/generateToken.js';
 import Project from './Schema/projectSchema.js';
 import protect from './middleware/authMiddleware.js';
 import Activity from './Schema/activitySchema.js';
+import sendMail from './utils/emailService.js';
 
 // Load environment variables from .env
 dotenv.config();
@@ -151,6 +152,15 @@ app.post('/project', protect , async(req, res)=>{
       user: userId,
       action: `Created project: ${title}`,
     });
+
+     // Fetch user to get their email
+     const user = await User.findById(userId);
+     // Send email
+     await sendMail(
+       user.email,
+       'Project Created',
+       `Hi ${user.name}, your project "${title}" was created successfully.`
+     );
 
     res.status(201).json(project);
   }catch (error) {
