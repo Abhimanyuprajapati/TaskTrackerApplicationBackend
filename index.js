@@ -67,6 +67,31 @@ app.get("/", async (req, res) => {
   res.send("Hello World!");
 });
 
+// Route to send OTP in gmail
+
+app.post('/send-otp', async (req, res)=>{
+  const {email} = req.body;
+
+  if(!email) return res.status(400).json({message:"Email is required"});
+
+  try{
+// check weather user is already register
+const existinguser = await User.findOne({email}) ;
+if(existinguser) return res.status(400).json({message: "Email Already Registered"});
+
+    // Generate OTP 
+    const optCode = Math.floor(100000 + Math.random() * 900000);
+    const otpExpiry = new Date(Date.now() + 10 * 60 * 1000); // 10 mins
+
+    // store otp in db
+    await 
+
+  }catch(error){
+    console.error(error);
+    res.status(500).json({ message: error.message });
+  }
+})
+
 app.post("/register", async (req, res) => {
   try {
     const { name, email, password, country } = req.body;

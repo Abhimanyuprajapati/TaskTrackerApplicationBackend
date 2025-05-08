@@ -19,7 +19,12 @@ const userSchema = new mongoose.Schema({
   country: {
     type: String,
     required: true,
+  },
+  isVerified: {
+    type: Boolean,
+    default: false,
   }
+  
 });
 
 // Create a User model from the schema
