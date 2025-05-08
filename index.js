@@ -10,6 +10,8 @@ import Project from "./Schema/projectSchema.js";
 import protect from "./middleware/authMiddleware.js";
 import Activity from "./Schema/activitySchema.js";
 import sendMail from "./utils/emailService.js";
+import OtpModel from "./Schema/otpSchema .js";
+import verifiedEmailSchema from "./Schema/verifiedEmailSchema.js";
 
 // Load environment variables from .env
 dotenv.config();
@@ -79,12 +81,41 @@ app.post('/send-otp', async (req, res)=>{
 const existinguser = await User.findOne({email}) ;
 if(existinguser) return res.status(400).json({message: "Email Already Registered"});
 
-    // Generate OTP 
-    const optCode = Math.floor(100000 + Math.random() * 900000);
-    const otpExpiry = new Date(Date.now() + 10 * 60 * 1000); // 10 mins
+// generate otp 
+const otpCode = Math.floor(100000 + Math.random() * 900000).toString();
+const hashedOtp = await bcrypt.hash(otpCode, 10);
+const otpExpiry = new Date(Date.now() + 10 * 60 * 1000); // 10 mins
 
-    // store otp in db
-    await 
+// store into db
+await OtpModel.findOneAndUpdate(
+  { email },
+  { code: hashedOtp, expiresAt: otpExpiry },
+  { upsert: true, new: true }
+);
+
+
+    // Send OTP via email
+    await sendMail(
+      email,
+      "🔐 Verify Your Email - Task Tracker",
+      `
+      <div style="font-family: Arial, sans-serif; padding: 20px; line-height: 1.6; background-color: #f9f9f9; color: #333;">
+        <h2 style="color: #4CAF50;">🔐 Email Verification</h2>
+        <p>Hello,</p>
+        <p>Thank you for starting your registration on <strong>Task Tracker</strong>.</p>
+        <p>Your OTP is:</p>
+        <div style="font-size: 24px; font-weight: bold; color: #000; margin: 10px 0;">${otpCode}</div>
+        <p>This code is valid for <strong>10 minutes</strong>.</p>
+        <p>Please complete your registration using this OTP. If you did not initiate this request, you can safely ignore this email.</p>
+        <p><strong>Note:</strong> If you do not complete the registration within 3 days, your email link and OTP will be cleared from our system, and you will need to initiate the verification process again.</p>
+        <hr style="border: none; border-top: 1px solid #ddd; margin: 20px 0;">
+        <p style="font-size: 14px; color: #555;">Need help? Contact us at support@tasktracker.com</p>
+      </div>
+      `
+    );
+    
+
+    res.status(200).json({ message: "OTP sent" });
 
   }catch(error){
     console.error(error);
@@ -92,10 +123,50 @@ if(existinguser) return res.status(400).json({message: "Email Already Registered
   }
 })
 
+// verify otp 
+app.post('/verify-otp', async (req, res)=>{
+  const {email, otp} = req.body;
+  if(!email && !otp) return res.status(400).json({message:"Email and OTP are required"});
+
+  try{
+const record = await OtpModel.findOne({email});
+if (!record) return res.status(404).json({ message: "OTP not found or expired" });
+
+const isMatch = await bcrypt.compare(otp, record.code);
+if (!isMatch || new Date() > record.expiresAt) {
+  return res.status(400).json({ message: "Invalid or expired OTP" });
+}
+
+  // OTP is valid — store verified email
+  await verifiedEmailSchema.findOneAndUpdate(
+    { email },
+    { email },
+    { upsert: true }
+  );
+
+  await OtpModel.deleteOne({ email });
+res.status(200).json({ message: "OTP verified" });
+
+  }catch(error){
+    console.error(error);
+    res.status(500).json({ message: error.message });
+  }
+
+})
+
+
 app.post("/register", async (req, res) => {
   try {
     const { name, email, password, country } = req.body;
-    console.log("Register data", name, email, password, country);
+    // console.log("Register data", name, email, password, country);
+
+       // Check if email was verified via OTP
+       const verified = await verifiedEmailSchema.findOne({ email });
+       if (!verified) {
+         return res
+           .status(400)
+           .json({ message: "Email not verified via OTP. Please verify first." });
+       }
 
     const existingUser = await User.findOne({ $or: [{ email }, { name }] });
     if (existingUser) {
