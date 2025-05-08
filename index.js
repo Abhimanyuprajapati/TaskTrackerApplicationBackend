@@ -292,8 +292,8 @@ app.get("/project/:id", protect, async (req, res) => {
 });
 
 // delete the single project
-app.delete("/project/:id", async (req, res) => {
-  const { id } = req.body;
+app.delete("/project/:id", protect , async (req, res) => {
+  const { id } = req.params;
   const userId = req.user._id;
   try {
     const deletedProject = await Project.findByIdAndDelete(id);
@@ -301,20 +301,22 @@ app.delete("/project/:id", async (req, res) => {
       return res.status(404).json({ message: "project not found" });
     }
 
+    // console.log("deletedProject",deletedProject);
     await Activity.create({
       user: userId,
-      action: `Deleted project: ${title}`,
+      action: `Deleted project: ${deletedProject.title}`,
     });
 
     // Send deletion email
     const user = await User.findById(userId);
+    // console.log(user);
     await sendMail(
       user.email,
       "🗑️ Project Deleted",
       `
           <div style="font-family: Arial, sans-serif; padding: 20px; background-color: #ffeaea; border-radius: 10px;">
             <h2 style="color: #cc0000;">Hi ${user.name},</h2>
-            <p>The project <strong>"${deletedTitle}"</strong> has been permanently deleted from your workspace.</p>
+            <p>The project <strong>"${deletedProject.title}"</strong> has been permanently deleted from your workspace.</p>
             <p>If you didn’t perform this action, please reach out to support immediately.</p>
             <p style="margin-top: 30px; font-size: 12px; color: #777;">This is an automated message from Task Tracker System.</p>
           </div>
@@ -330,6 +332,7 @@ app.delete("/project/:id", async (req, res) => {
 // make the project as completed
 app.put("/project/:id/complete", protect, async (req, res) => {
   const { id } = req.params;
+  // console.log("req.user===>",req.user);
   const userId = req.user._id;
 
   try {
