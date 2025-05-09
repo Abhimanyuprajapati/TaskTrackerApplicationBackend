@@ -165,7 +165,7 @@ app.post("/register", async (req, res) => {
        if (!verified) {
          return res
            .status(400)
-           .json({ message: "Email not verified via OTP. Please verify first." });
+           .json({ message: "Email not verified. Please verify first." });
        }
 
     const existingUser = await User.findOne({ $or: [{ email }, { name }] });
