@@ -513,13 +513,19 @@ app.get("/notification", protect, async (req, res) => {
   try {
     const notification = [
       {
+        title: "Project for UP",
         message: "New project is available for Client A",
+        type: "info"
       },
       {
+        title: "Project for Mumbai",
         message: "New project is available for Client B",
+        type: "warning"
       },
       {
+         title: "Project for Pune",
         message: "New project is available for Client C",
+        type: "success"
       },
     ];
     res.status(200).json(notification);
