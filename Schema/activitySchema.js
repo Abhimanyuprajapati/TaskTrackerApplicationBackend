@@ -10,6 +10,12 @@ const activitySchema = new mongoose.Schema({
         type: String,
         required: true,
       },
+      title:{
+        type: String,
+      },
+      description:{
+        type: String,
+      },
       timestamp: {
         type: Date,
         default: Date.now,

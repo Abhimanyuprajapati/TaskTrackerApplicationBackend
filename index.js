@@ -273,6 +273,9 @@ app.post("/project", protect, async (req, res) => {
     await Activity.create({
       user: userId,
       action: `Created project: ${title}`,
+      title: title,
+      description: description,
+      timestamp: new Date(),
     });
 
     // Fetch user to get their email
@@ -334,6 +337,9 @@ app.patch("/project/:id", protect, async (req, res) => {
     await Activity.create({
       user: userId,
       action: `Updated project: ${title || project.title}`,
+       title: title,
+      description: description,
+      timestamp: new Date(),
     });
 
     // Fetch user to get their email
@@ -401,6 +407,9 @@ app.delete("/project/:id", protect , async (req, res) => {
     await Activity.create({
       user: userId,
       action: `Deleted project: ${deletedProject.title}`,
+       title: deletedProject.title,
+      description: deletedProject.description,
+      timestamp: new Date(),
     });
 
     // Send deletion email
@@ -454,6 +463,9 @@ app.put("/project/:id/complete", protect, async (req, res) => {
     await Activity.create({
       user: userId,
       action: `Marked project as completed: ${project.title}`,
+      title: project.title,
+      description: project.description,
+      timestamp: new Date(),
     });
 
     // Fetch user to send email
