@@ -497,7 +497,8 @@ app.get("/projects", protect, async (req, res) => {
 
   console.log("User ID:", userId); // Log the user ID for debugging
   try {
-    const projects = await Project.find({ owner: userId });
+    // const projects = await Project.find({ owner: userId });
+    const projects = await Project.find({ owner: userId }).sort({ createdAt: -1 });
     res.status(200).json(projects);
   } catch (error) {
     res.status(500).json({ message: error.message });
