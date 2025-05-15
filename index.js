@@ -12,6 +12,7 @@ import Activity from "./Schema/activitySchema.js";
 import sendMail from "./utils/emailService.js";
 import OtpModel from "./Schema/otpSchema .js";
 import verifiedEmailSchema from "./Schema/verifiedEmailSchema.js";
+import Feedback from "./Schema/feedbackSchema.js";
 
 // Load environment variables from .env
 dotenv.config();
@@ -556,6 +557,31 @@ app.get("/activity/recent", protect, async (req, res) => {
       .limit(5); // limit to latest 5
 
     res.status(200).json(activities);
+  } catch (error) {
+    res.status(500).json({ message: error.message });
+  }
+});
+
+// feedback api
+app.post("/feedback", protect, async (req, res) => {
+  try {
+    const userId = req.user._id;
+    const { feedback } = req.body;
+
+    if (!feedback)
+      return res.status(400).json({ message: "Feedback is required" });
+
+    const newFeedback = new Feedback({
+      user: userId,
+      feedback,
+    });
+
+    await newFeedback.save();
+
+    res.status(200).json({
+      message: "Feedback submitted successfully",
+      feedback: newFeedback,
+    });
   } catch (error) {
     res.status(500).json({ message: error.message });
   }
