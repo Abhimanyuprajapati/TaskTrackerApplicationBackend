@@ -38,7 +38,7 @@ const PORT = process.env.PORT;
 
 const allowedOrigins = [
   "http://localhost:5173",
-  "https://task-tracker-application-backend.vercel.app",
+  "https://task-tracker-application-backend.vercel.app/",
 ];
 
 app.use(
