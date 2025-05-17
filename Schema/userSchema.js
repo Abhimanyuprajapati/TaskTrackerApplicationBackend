@@ -20,11 +20,10 @@ const userSchema = new mongoose.Schema({
     type: String,
     required: true,
   },
-  // isVerified: {
-  //   type: Boolean,
-  //   default: false,
-  // }
-  
+   profilePic: {
+    data: Buffer,
+    contentType: String,
+  },
 });
 
 // Create a User model from the schema

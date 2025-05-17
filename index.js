@@ -13,6 +13,7 @@ import sendMail from "./utils/emailService.js";
 import OtpModel from "./Schema/otpSchema .js";
 import verifiedEmailSchema from "./Schema/verifiedEmailSchema.js";
 import Feedback from "./Schema/feedbackSchema.js";
+import upload from "./uploads/upload.js";
 
 // Load environment variables from .env
 dotenv.config();
@@ -607,6 +608,79 @@ app.post("/feedback", protect, async (req, res) => {
     res.status(500).json({ message: error.message });
   }
 });
+
+// app.get('/profile-pic', protect, async (req, res) => {
+//   try {
+//     const user = await User.findById(req.user.id);
+
+//     if (!user || !user.profilePic || !user.profilePic.data) {
+//       return res.status(404).json({ message: 'Profile picture not found' });
+//     }
+
+//     res.set('Content-Type', user.profilePic.contentType);
+//     res.send(user.profilePic.data);
+//   } catch (err) {
+//     res.status(500).json({ message: err.message });
+//   }
+// });
+
+// profile api
+app.get('/profile-pic', protect, async (req, res) => {
+  try {
+    const user = await User.findById(req.user.id).select('-password -__v');
+
+    if (!user) {
+      return res.status(404).json({ message: 'User not found' });
+    }
+
+    let profilePicBase64 = null;
+
+    if (user.profilePic && user.profilePic.data) {
+      profilePicBase64 = `data:${user.profilePic.contentType};base64,${user.profilePic.data.toString('base64')}`;
+    }
+
+    res.json({
+      success: true,
+      user: {
+        _id: user._id,
+        email: user.email,
+        name: user.name,
+        country: user.country,
+        profilePic: profilePicBase64,
+      }
+    });
+  } catch (err) {
+    res.status(500).json({ success: false, message: err.message });
+  }
+});
+
+
+// Upload & update profile picture only
+app.post('/update-profile', protect, upload.single('profilePic'), async (req, res) => {
+  try {
+    if (!req.file) {
+      return res.status(400).json({ success: false, message: 'No profile picture uploaded.' });
+    }
+
+    const updateProfile = await User.findByIdAndUpdate(
+      req.user.id,
+      {
+        profilePic: {
+          data: req.file.buffer,
+          contentType: req.file.mimetype
+        }
+      },
+      { new: true }
+    );
+
+    res.json({ success: true, message: 'Profile picture updated.' });
+  } catch (err) {
+    res.status(500).json({ success: false, message: err.message });
+  }
+});
+
+
+
 
 // Start the server
 app.listen(PORT, () => {
